@@ -1,8 +1,14 @@
 from fastapi import FastAPI
+from Auth.manager import fastapi_users
+
+from Auth.auth import auth_backend
+from Auth.schemas import UserRead, UserCreate
 from Pins.api import router
-from Pins.models import *
 from contextlib import asynccontextmanager
-from Pins.database import create_tables, delete_tables
+from .models import *
+from database import create_tables, delete_tables
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -15,3 +21,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(router)
+app.include_router(
+    fastapi_users.get_auth_router(auth_backend),
+    prefix="/auth/jwt",
+    tags=["auth"],
+)
+app.include_router(
+    fastapi_users.get_register_router(UserRead, UserCreate),
+    prefix="/auth",
+    tags=["auth"],
+)

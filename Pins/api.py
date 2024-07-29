@@ -1,9 +1,9 @@
-from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException
 from sqlalchemy import select
 
-from services import upload_file, file_validator
-from models import Pin
-from database import async_session
+from .services import upload_file, file_validator
+from Pins.models import Pin
+from Pins.database import async_session
 
 router = APIRouter()
 
@@ -19,7 +19,7 @@ async def pin_create(title: str, desc: str, file: UploadFile = File(...)):
         session.add(Pin(title=title, desc=desc, file=file.filename))
         await session.commit()
 
-    return {"file": file}
+    return {"file": file.filename}
 
 @router.get("/")
 async def pins_list():
@@ -28,7 +28,7 @@ async def pins_list():
         pins = result.scalars().all()
     return pins
 
-@router.get("/user")
-async def pins_list_by_user():
+@router.get("/{user}")
+async def pins_list_by_user(user: str):
     pass
 

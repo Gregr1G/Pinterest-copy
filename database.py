@@ -15,7 +15,7 @@ class User(SQLAlchemyBaseUserTable[int], Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str]
 
-async_engine = create_async_engine("sqlite+aiosqlite:///database.db", echo=True)
+async_engine = create_async_engine("sqlite+aiosqlite:///database.db", echo=False)
 
 async_session_maker = async_sessionmaker(async_engine, expire_on_commit=False)
 

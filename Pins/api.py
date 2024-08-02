@@ -1,9 +1,10 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy import select
 from Auth.manager import current_user
-from .services import upload_file, file_validator
-from Pins.models import Pin, Tag
+from Pins.services import upload_file, file_validator
+from Pins.models import Pin
 from database import async_session_maker as async_session, User
+from Pins.redis_client import redis_client
 
 router = APIRouter()
 
@@ -16,9 +17,12 @@ async def pin_create(title: str, desc: str, file: UploadFile = File(...), user: 
     await upload_file(file)
 
     async with async_session() as session:
-        session.add(Pin(title=title, desc=desc, file=file.filename, creator=user.id))
-        await session.commit()
+        new_pin = Pin(title=title, desc=desc, file=file.filename, creator=user.id)
+        session.add(new_pin)
+        await session.flush()
 
+        await redis_client.set(f"{new_pin.id}", 1)
+        await session.commit()
     return {"file": file.filename, "creator": user}
 
 @router.get("/")
@@ -34,3 +38,15 @@ async def pins_list_by_user(user: int):
         result = select(Pin).where(Pin.creator == user)
         users_pins = await session.execute(result)
     return users_pins.scalars().all()
+
+@router.post("/{pin}")
+async def retrieve_pin(pin: int):
+    views = await redis_client.incr(f"{pin}")
+
+    async with async_session() as session:
+        result = select(Pin).where(Pin.id == pin)
+        pinn = await session.execute(result)
+
+    return {"views": views, "pin": pinn.scalars().one()}
+
+
